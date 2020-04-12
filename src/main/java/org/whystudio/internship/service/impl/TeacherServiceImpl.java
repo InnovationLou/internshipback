@@ -60,9 +60,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         //鉴权成功的话, 这里不需要在判断token为空了, 肯定不为空
         String teachNo = JWTTool.findToken(token);
         Teacher teacher = teacherMapper.selectByTeachno(teachNo); // unique teachNo
-        if (teacher == null){
+        if (teacher == null) {
             return ControllerUtil.getFalseResultMsgBySelf("没有找到对应教师信息");
-        } else if (!teacher.getStatus()){
+        } else if (!teacher.getStatus()) {
             return ControllerUtil.getFalseResultMsgBySelf("该教师已被锁定");
         } else {
             // teacher.setPassword(null); //添加了@JsonIgnore
@@ -73,12 +73,12 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Override
     public JsonResult updatePersonalInfo(String token, Teacher teacher) {
         String teachNo = JWTTool.findToken(token); // not null
-        Teacher teacher1 =  teacherMapper.selectByTeachno(teachNo);
-        teacher1.setAge((teacher.getAge() == null)?teacher1.getAge():teacher.getAge());
-        teacher1.setSex(StringUtils.isBlank(teacher.getSex())?teacher1.getSex():teacher.getSex());
+        Teacher teacher1 = teacherMapper.selectByTeachno(teachNo);
+        teacher1.setAge((teacher.getAge() == null) ? teacher1.getAge() : teacher.getAge());
+        teacher1.setSex(StringUtils.isBlank(teacher.getSex()) ? teacher1.getSex() : teacher.getSex());
         LambdaUpdateWrapper<Teacher> lambdaUpdateWrapper = Wrappers.lambdaUpdate();
         lambdaUpdateWrapper.eq(Teacher::getTeachno, teachNo);
-        if (teacherMapper.update(teacher1, lambdaUpdateWrapper) > 0){
+        if (teacherMapper.update(teacher1, lambdaUpdateWrapper) > 0) {
             return ControllerUtil.getDataResult(teacher1);
         } else {
             return ControllerUtil.getFalseResultMsgBySelf("更新信息失败");
@@ -98,27 +98,27 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public JsonResult myStudentReport(String token, String stuno) {
         String teachNo = JWTTool.findToken(token); // teachNo不为空
         Student student = studentService.lambdaQuery().eq(Student::getStuno, stuno).one();
-        if (null == student || !student.getTeachno().equals(teachNo)){
+        if (null == student || !student.getTeachno().equals(teachNo)) {
             return ControllerUtil.getFalseResultMsgBySelf("无权访问该学生信息");
         }
         //找report
         Report report = reportService.lambdaQuery().eq(Report::getStuno, student.getStuno()).one();
-        if (report == null){
-            Report report1 = new Report();
-            report1.setStuno(student.getStuno());
-            if(reportService.save(report1)){
-                return ControllerUtil.getDataResult(report1);
-            }else {
+        Reportdate reportdate = reportdateService.lambdaQuery().eq(Reportdate::getStuno, stuno).one();
+        if (report == null) {
+            report = new Report();
+            reportdate = new Reportdate();
+            report.setStuno(student.getStuno());
+            reportdate.setStuno(student.getStuno());
+            if (!(reportService.save(report) && reportdateService.save(reportdate))) {
                 return ControllerUtil.getFalseResultMsgBySelf("没有获取到报告册信息, 无法保存到报告册信息");
             }
-        } else {
-            Reportdate reportdate = reportdateService.lambdaQuery().eq(Reportdate::getStuno, stuno).one();
-            Map<String, Object> rs = new HashMap<>();
-            rs.put("report", report);
-            rs.put("reportdate",reportdate);
-            rs.put("student", student);
-            return ControllerUtil.getDataResult(rs);
         }
+        Map<String, Object> rs = new HashMap<>();
+        rs.put("report", report);
+        rs.put("reportdate", reportdate);
+        rs.put("student", student);
+        return ControllerUtil.getDataResult(rs);
+
     }
 
     @Override
@@ -126,26 +126,26 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public JsonResult myStudentAppraisal(String token, String stuno) {
         String teachNo = JWTTool.findToken(token); // teachNo不为空
         Student student = studentService.lambdaQuery().eq(Student::getStuno, stuno).one();
-        if (null == student || !student.getTeachno().equals(teachNo)){
+        if (null == student || !student.getTeachno().equals(teachNo)) {
             return ControllerUtil.getFalseResultMsgBySelf("你无权访问该学生信息");
         }
         Appraisal appraisal = appraisalService.lambdaQuery().eq(Appraisal::getStuno, stuno).one();
-        if (appraisal == null){
-            Appraisal appraisal1 = new Appraisal();
-            appraisal1.setStuno(student.getStuno());
-            if(appraisalService.save(appraisal1)){
-                return ControllerUtil.getDataResult(appraisal1);
-            } else {
+        Appraisaldate appraisaldate = appraisaldateService.lambdaQuery().eq(Appraisaldate::getStuno, stuno).one();
+        if (appraisal == null) {
+            appraisal = new Appraisal();
+            appraisaldate = new Appraisaldate();
+            appraisal.setStuno(student.getStuno());
+            appraisaldate.setStuno(student.getStuno());
+            if (!(appraisalService.save(appraisal) && appraisaldateService.save(appraisaldate))) {
                 return ControllerUtil.getFalseResultMsgBySelf("没有获取到鉴定表信息, 无法保存到新的鉴定表信息");
             }
-        } else {
-            Appraisaldate appraisaldate = appraisaldateService.lambdaQuery().eq(Appraisaldate::getStuno, stuno).one();
-            Map<String, Object> rs = new HashMap<>();
-            rs.put("appraisal", appraisal);
-            rs.put("appraisaldate", appraisaldate);
-            rs.put("student", student);
-            return ControllerUtil.getDataResult(rs);
         }
+        Map<String, Object> rs = new HashMap<>();
+        rs.put("appraisal", appraisal);
+        rs.put("appraisaldate", appraisaldate);
+        rs.put("student", student);
+        return ControllerUtil.getDataResult(rs);
+
     }
 
     @Override
@@ -153,40 +153,40 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public JsonResult evalStudentAppraisal(String token, String stuno, String corpTeacherGrade, String teacherGrade, String leaderOpinion) {
         String[] grades = {Const.NO_PASS, Const.PASS, Const.USUAL, Const.GOOD, Const.PERFECT};
         List<String> list = Arrays.asList(grades);
-        if (!StringUtils.isBlank(corpTeacherGrade) && !list.contains(corpTeacherGrade)){
+        if (!StringUtils.isBlank(corpTeacherGrade) && !list.contains(corpTeacherGrade)) {
             corpTeacherGrade = Const.NO_PASS;
         }
-        if (!StringUtils.isBlank(teacherGrade) && !list.contains(teacherGrade)){
+        if (!StringUtils.isBlank(teacherGrade) && !list.contains(teacherGrade)) {
             teacherGrade = Const.NO_PASS;
         }
         String teachNo = JWTTool.findToken(token); // teachNo不为空
         Student student = studentService.lambdaQuery().eq(Student::getStuno, stuno).one();
-        if (null == student || !student.getTeachno().equals(teachNo)){
+        if (null == student || !student.getTeachno().equals(teachNo)) {
             return ControllerUtil.getFalseResultMsgBySelf("无权访问该学生信息");
         }
         Appraisal appraisal = appraisalService.lambdaQuery().eq(Appraisal::getStuno, stuno).one();
-        if (appraisal == null){
+        if (appraisal == null) {
             return ControllerUtil.getFalseResultMsgBySelf("无法评价空的鉴定表");
         }
-        appraisal.setCorpTeacherGrade((corpTeacherGrade == null)?appraisal.getCorpTeacherGrade():corpTeacherGrade);
-        appraisal.setTeacherGrade((teacherGrade == null)?appraisal.getTeacherGrade():teacherGrade);
-        appraisal.setLeaderOpinion((leaderOpinion == null)?appraisal.getLeaderOpinion():leaderOpinion);
+        appraisal.setCorpTeacherGrade((corpTeacherGrade == null) ? appraisal.getCorpTeacherGrade() : corpTeacherGrade);
+        appraisal.setTeacherGrade((teacherGrade == null) ? appraisal.getTeacherGrade() : teacherGrade);
+        appraisal.setLeaderOpinion((leaderOpinion == null) ? appraisal.getLeaderOpinion() : leaderOpinion);
 
         //自动 生成综合成绩
         String synthGrade = getSynthGrade(appraisal.getCorpTeacherGrade(), appraisal.getTeacherGrade());
-        appraisal.setSynthGrade((synthGrade == null)?appraisal.getSynthGrade():synthGrade);
+        appraisal.setSynthGrade((synthGrade == null) ? appraisal.getSynthGrade() : synthGrade);
         boolean update = appraisalService.lambdaUpdate().eq(Appraisal::getStuno, stuno).update(appraisal);
-        if (update){
+        if (update) {
             //填写时间后台更新操作
             Appraisaldate appraisaldate = appraisaldateService.lambdaQuery().eq(Appraisaldate::getStuno, stuno).one();
-            if (appraisaldate == null){
+            if (appraisaldate == null) {
                 appraisaldate = new Appraisaldate();
                 appraisaldate.setStuno(stuno);
             }
-            appraisaldate.setCorpteacher(StringUtils.isBlank(corpTeacherGrade)?null:LocalDateTime.now());
-            appraisaldate.setTeacher(StringUtils.isBlank(teacherGrade)?null:LocalDateTime.now());
-            appraisaldate.setLeader(StringUtils.isBlank(leaderOpinion)?null:LocalDateTime.now());
-            appraisaldate.setSynth(StringUtils.isBlank(synthGrade)?null:LocalDateTime.now());
+            appraisaldate.setCorpteacher(StringUtils.isBlank(corpTeacherGrade) ? null : LocalDateTime.now());
+            appraisaldate.setTeacher(StringUtils.isBlank(teacherGrade) ? null : LocalDateTime.now());
+            appraisaldate.setLeader(StringUtils.isBlank(leaderOpinion) ? null : LocalDateTime.now());
+            appraisaldate.setSynth(StringUtils.isBlank(synthGrade) ? null : LocalDateTime.now());
             return ControllerUtil.getTrueOrFalseResult(appraisaldateService.saveOrUpdate(appraisaldate));
         } else {
             return ControllerUtil.getFalseResultMsgBySelf("更新鉴定表失败");
@@ -209,11 +209,11 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         // 总评阶段就不判断report是否为空了, 我觉得这个阶段肯定是一二阶段都填写了,所以有内容
         String teachNo = JWTTool.findToken(token); // teachNo不为空
         Student student = studentService.lambdaQuery().eq(Student::getStuno, stuno).one();
-        if (null == student || !student.getTeachno().equals(teachNo)){
+        if (null == student || !student.getTeachno().equals(teachNo)) {
             return ControllerUtil.getFalseResultMsgBySelf("无权访问该学生信息");
         }
         Report report = reportService.lambdaQuery().eq(Report::getStuno, stuno).one();
-        report.setTotalEval(StringUtils.isBlank(total_eval)?report.getTotalEval():total_eval);
+        report.setTotalEval(StringUtils.isBlank(total_eval) ? report.getTotalEval() : total_eval);
         return ControllerUtil.getTrueOrFalseResult(reportService.saveOrUpdate(report));
     }
 
@@ -221,19 +221,20 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     /**
      * 通过导师和校外导师的评价获取综合评价
      * 优秀 良好 中等 及格 不及格
+     *
      * @param corpTeacherGrade 校外导师评价
-     * @param teacherGrade 导师评价
+     * @param teacherGrade     导师评价
      * @return
      */
-    private String getSynthGrade(String corpTeacherGrade, String teacherGrade){
+    private String getSynthGrade(String corpTeacherGrade, String teacherGrade) {
         String[] grades = {Const.NO_PASS, Const.PASS, Const.USUAL, Const.GOOD, Const.PERFECT};
-        if (StringUtils.isBlank(corpTeacherGrade) || StringUtils.isBlank(teacherGrade)){
+        if (StringUtils.isBlank(corpTeacherGrade) || StringUtils.isBlank(teacherGrade)) {
             return null;
         }
         int flag1 = Arrays.asList(grades).indexOf(corpTeacherGrade) + 1;
         int flag2 = Arrays.asList(grades).indexOf(teacherGrade) + 1;
         int flag = Math.min(flag1, flag2);
-        if (flag <= 0){
+        if (flag <= 0) {
             flag = 1;// 若是输入的不是5个常量, 判定为差生
         }
         System.out.println(flag + ", " + flag1 + "," + flag2);
@@ -242,6 +243,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     /**
      * 第一阶段和第二阶段的操作类似
+     *
      * @param stage
      * @param token
      * @param stuno
@@ -249,45 +251,45 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
      * @param stageGrade
      * @return
      */
-    private JsonResult evalReport(int stage, String token, String stuno, String stageComment, String stageGrade){
+    private JsonResult evalReport(int stage, String token, String stuno, String stageComment, String stageGrade) {
         // 交换顺序方式重复代码块警告
-        String[] grades = {Const.PASS,Const.NO_PASS, Const.USUAL, Const.GOOD, Const.PERFECT};
+        String[] grades = {Const.PASS, Const.NO_PASS, Const.USUAL, Const.GOOD, Const.PERFECT};
         List<String> list = Arrays.asList(grades);
-        if (!list.contains(stageGrade) && !StringUtils.isBlank(stageGrade)){
+        if (!list.contains(stageGrade) && !StringUtils.isBlank(stageGrade)) {
             stageGrade = Const.NO_PASS;
         }
         Student student = studentService.lambdaQuery().eq(Student::getStuno, stuno).one();
         String teachNo = JWTTool.findToken(token); // teachNo不为空
-        if (null == student || !student.getTeachno().equals(teachNo)){
+        if (null == student || !student.getTeachno().equals(teachNo)) {
             return ControllerUtil.getFalseResultMsgBySelf("无权访问该学生信息");
         }
         Report report = reportService.lambdaQuery().eq(Report::getStuno, stuno).one();
-        if (report == null){
+        if (report == null) {
             return ControllerUtil.getFalseResultMsgBySelf("无法评价空的报告册表");
         }
-        if (stage == Const.STAGE1){
-            report.setStage1Comment(StringUtils.isBlank(stageComment)?report.getStage1Comment():stageComment);
-            report.setStage1Grade(StringUtils.isBlank(stageGrade)?report.getStage1Grade():stageGrade);
+        if (stage == Const.STAGE1) {
+            report.setStage1Comment(StringUtils.isBlank(stageComment) ? report.getStage1Comment() : stageComment);
+            report.setStage1Grade(StringUtils.isBlank(stageGrade) ? report.getStage1Grade() : stageGrade);
         } else {
-            report.setStage2Comment(StringUtils.isBlank(stageComment)?report.getStage2Comment():stageComment);
-            report.setStage2Grade(StringUtils.isBlank(stageGrade)?report.getStage2Grade():stageGrade);
+            report.setStage2Comment(StringUtils.isBlank(stageComment) ? report.getStage2Comment() : stageComment);
+            report.setStage2Grade(StringUtils.isBlank(stageGrade) ? report.getStage2Grade() : stageGrade);
         }
         String totalGrade = getSynthGrade(report.getStage1Grade(), report.getStage2Grade());
         report.setTotalGrade(totalGrade);
         boolean update = reportService.lambdaUpdate().eq(Report::getStuno, stuno).update(report);
-        if (update){
+        if (update) {
             Reportdate reportdate = reportdateService.lambdaQuery().eq(Reportdate::getStuno, stuno).one();
-            if (reportdate == null){
+            if (reportdate == null) {
                 reportdate = new Reportdate();
                 reportdate.setStuno(stuno);
             }
-            if (stage == Const.STAGE1){
-                reportdate.setStage1Grade(StringUtils.isBlank(stageGrade)?null:LocalDateTime.now());
-            }else {
-                reportdate.setStage2Grade(StringUtils.isBlank(stageGrade)?null:LocalDateTime.now());
+            if (stage == Const.STAGE1) {
+                reportdate.setStage1Grade(StringUtils.isBlank(stageGrade) ? null : LocalDateTime.now());
+            } else {
+                reportdate.setStage2Grade(StringUtils.isBlank(stageGrade) ? null : LocalDateTime.now());
             }
             return ControllerUtil.getTrueOrFalseResult(reportdateService.saveOrUpdate(reportdate));
-        }else {
+        } else {
             return ControllerUtil.getFalseResultMsgBySelf("更新报告册失败");
         }
     }

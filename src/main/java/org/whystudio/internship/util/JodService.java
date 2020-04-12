@@ -14,6 +14,7 @@ import org.whystudio.internship.service.IAppraisalService;
 import org.whystudio.internship.service.IPdfService;
 import org.whystudio.internship.service.IReportService;
 import org.whystudio.internship.vo.JodItem;
+
 import javax.annotation.PostConstruct;
 import java.io.*;
 import java.time.Duration;
@@ -24,11 +25,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- *
  * word生成服务
  * 准确说这是一个服务，不是tool, 因为其中充满了业务逻辑的味道
  * 但是似乎它又不太属于服务, 暂时放到util包下，后期在改进
- *
  */
 
 @Service
@@ -51,18 +50,18 @@ public class JodService {
      * 实习报告册模板的保存位置
      * classpath(resources)下
      */
-    public static String REPORT_PATH = MultiPlatformPathTool.isWindows()?"word\\report.docx":"word/report.docx";
+    public static String REPORT_PATH = MultiPlatformPathTool.isWindows() ? "word\\report.docx" : "word/report.docx";
 
     /**
      * 实习鉴定表模板路径
-     *classpath(resources)下
+     * classpath(resources)下
      */
-    public static String IDENTIFY_PATH = MultiPlatformPathTool.isWindows()?"word\\identify.docx":"word/identify.docx";
+    public static String IDENTIFY_PATH = MultiPlatformPathTool.isWindows() ? "word\\identify.docx" : "word/identify.docx";
 
     /**
      * 基本保存路径
      */
-    public static String BASE_SAVE_PATH = MultiPlatformPathTool.isWindows()?"static\\":"static/";
+    public static String BASE_SAVE_PATH = MultiPlatformPathTool.isWindows() ? "static\\" : "static/";
 
     public static Long REC_THRESHOLD = 10L;
     /**
@@ -88,17 +87,18 @@ public class JodService {
     public static JodService jodService;
 
     @PostConstruct
-    public void init(){
+    public void init() {
         jodService = this;
         executeJodTask(); // 开始执行转换任务,
     }
 
     /**
      * 增加一个转换任务
+     *
      * @param jodItem
      */
-    public Boolean addTask(JodItem jodItem){
-        if (jodItem == null || StringUtils.isBlank(jodItem.getStuno())){
+    public Boolean addTask(JodItem jodItem) {
+        if (jodItem == null || StringUtils.isBlank(jodItem.getStuno())) {
             return false;
         }
         queue.offer(jodItem);
@@ -107,22 +107,23 @@ public class JodService {
 
     /**
      * 获取当前任务的位置
+     *
      * @param stuno
      * @return
      */
-    public String getPosition(String stuno, Boolean report){
+    public String getPosition(String stuno, Boolean report) {
         int count = 0;
         int size = queue.size();
-        for (JodItem jodItem: queue) {
-            count ++ ;
-            if (jodItem.getStuno().equals(stuno) && jodItem.getReport().equals(report)){
+        for (JodItem jodItem : queue) {
+            count++;
+            if (jodItem.getStuno().equals(stuno) && jodItem.getReport().equals(report)) {
                 break;
             }
         }
         StringBuilder rs = new StringBuilder();
-        if (size < count){
+        if (size < count) {
             rs.append("当前队列没有您的任务!");
-        }else {
+        } else {
             rs.append("当前队列总共");
             rs.append(size);
             rs.append("个任务,");
@@ -136,12 +137,13 @@ public class JodService {
 
     /**
      * 在队列中查找是否存在我的任务
+     *
      * @param stuno
      * @return
      */
-    public Boolean existMyTask(String stuno, Boolean report){
-        for (JodItem jodItem: queue) {
-            if (jodItem.getStuno().equals(stuno) && jodItem.getReport().equals(report)){
+    public Boolean existMyTask(String stuno, Boolean report) {
+        for (JodItem jodItem : queue) {
+            if (jodItem.getStuno().equals(stuno) && jodItem.getReport().equals(report)) {
                 return true;
             }
         }
@@ -150,9 +152,10 @@ public class JodService {
 
     /**
      * 跳过头结点位置处任务 一般不会使用
+     *
      * @return
      */
-    public JodItem popTask(){
+    public JodItem popTask() {
         return queue.poll();
     }
 
@@ -160,17 +163,17 @@ public class JodService {
      * 执行word文档生成任务,队列中有多个任务, 一个任务一个任务地执行
      */
     //@Transactional
-    public void executeJodTask(){
+    public void executeJodTask() {
         new Thread(() -> {
-            while(true){
+            while (true) {
                 JodItem jodItem = queue.poll();
                 Pdf pdf = new Pdf();
                 pdf.setConverting(true);
                 pdf.setUrl("-");
                 try {
-                    if (jodItem != null){
+                    if (jodItem != null) {
                         LocalDateTime start = LocalDateTime.now();
-                        log.info("学号{},位置:{}(数值 + 1, 位置0代表1), 开始转换时间:{}",jodItem.getStuno(),getPosition(jodItem.getStuno(),jodItem.getReport()) ,start);
+                        log.info("学号{},位置:{}(数值 + 1, 位置0代表1), 开始转换时间:{}", jodItem.getStuno(), getPosition(jodItem.getStuno(), jodItem.getReport()), start);
                         // 转换任务存储到数据库, 并标记状态为未完成
                         // id在new时便已经设置好 暂时使用随机long
                         pdf.setReport(jodItem.getReport());
@@ -181,15 +184,15 @@ public class JodService {
                         // 从数据库读取report、reportData或者appraisal、appraisalDate, 然后生成params
                         Map<String, String> params;
                         String fileName = MD5Tool.md5(String.valueOf(new Date().getTime()));
-                        if (jodItem.getReport()){
+                        if (jodItem.getReport()) {
                             params = reportService.getReportInfoInJodFormatByStuno(jodItem.getStuno());
-                            if (params.isEmpty()){
+                            if (params.isEmpty()) {
                                 continue;
                             }
                             xwpfDocument = readXWPFDocumentFromFile(REPORT_PATH);
                         } else {
                             params = appraisalService.getAppraisalInfoInJodFormatByStuno(jodItem.getStuno());
-                            if (params.isEmpty()){
+                            if (params.isEmpty()) {
                                 continue;
                             }
                             xwpfDocument = readXWPFDocumentFromFile(IDENTIFY_PATH);
@@ -197,7 +200,7 @@ public class JodService {
                         replaceInTable(xwpfDocument, params);
                         //存到本地临时文件夹
                         File sourceDocx = new File(BASE_SAVE_PATH + fileName + ".docx");
-                        if (!sourceDocx.exists()){
+                        if (!sourceDocx.exists()) {
                             sourceDocx.createNewFile();
                         }
                         FileOutputStream outputStream
@@ -207,19 +210,19 @@ public class JodService {
                         File targetPdf = new File(BASE_SAVE_PATH + fileName + ".pdf");
                         documentConverter.convert(sourceDocx).to(targetPdf).execute();
                         // 上传到七牛云
-                        String url = QiNiuTool.uploadQiNiu(new FileInputStream(targetPdf),targetPdf.getName());
+                        String url = QiNiuTool.uploadQiNiu(new FileInputStream(targetPdf), targetPdf.getName());
 
                         pdf.setUrl(url);
                         pdf.setConverting(false);
                         pdfService.saveOrUpdate(pdf);
                         // 嘿嘿
                         Long durex = Duration.between(start, LocalDateTime.now()).getSeconds();
-                        if (durex > REC_THRESHOLD){
+                        if (durex > REC_THRESHOLD) {
                             // 大于10s的才记录
-                            COUNT ++;
+                            COUNT++;
                             TOTAL_SECOND += Duration.between(start, LocalDateTime.now()).getSeconds();
                         }
-                        log.info("学号{},转换加上传到QiNiu耗时:{}s",jodItem.getStuno(),
+                        log.info("学号{},转换加上传到QiNiu耗时:{}s", jodItem.getStuno(),
                                 Duration.between(start, LocalDateTime.now()).getSeconds());
                     }
                 } catch (Exception e) {
@@ -229,7 +232,7 @@ public class JodService {
                     continue;
                 }
                 // 如果队列中没有任务, 就让线程休息一会儿
-                if (queue.size() < 1){
+                if (queue.size() < 1) {
                     try {
                         Thread.sleep(3000);
                     } catch (InterruptedException e) {
@@ -273,12 +276,11 @@ public class JodService {
     }
 
 
-
-
     /**
      * 通过路径读入word模板文件
+     *
      * @param path word模板文件存储的位置
-     * @return 返回WXPFDocument对象( word )
+     * @return 返回WXPFDocument对象(word)
      * @throws IOException 流异常/xwpf异常
      */
     public XWPFDocument readXWPFDocumentFromFile(String path) throws IOException {
@@ -291,6 +293,7 @@ public class JodService {
 
     /**
      * 替换表格里面的变量 ${variable}
+     *
      * @param doc
      * @param params
      */
@@ -317,14 +320,15 @@ public class JodService {
 
     /**
      * 将word docx文件保存到本地文件中
+     *
      * @param docx     当前编辑的docx文件
      * @param fileName 要保存的docx文件的名字,不包括后缀<b>.docx</b>
      * @param path
      */
     public String printToFile(XWPFDocument docx, String fileName, String path) {
-        if(MultiPlatformPathTool.isWindows()){
+        if (MultiPlatformPathTool.isWindows()) {
             path = System.getProperty("user.dir") + "\\" + path;
-        }else {
+        } else {
             path = System.getProperty("user.dir") + "/" + path;
         }
 
@@ -346,6 +350,7 @@ public class JodService {
 
     /**
      * 替换段落里面的变量 变量形式： ${variable}
+     *
      * @param para   传入一个段落
      * @param params 传入变量以及变量的值
      */
@@ -398,10 +403,14 @@ public class JodService {
                     int end = start + k.length();
                     contentRs = new StringBuilder();
                     contentRs.append(content, 0, start);
-                    contentRs.append(params.get(k));
+                    //判断是否为空，避免出现"null"字符串
+                    if (params.get(k) == null) {
+                        contentRs.append("  ");
+                    } else {
+                        contentRs.append(params.get(k));
+                    }
                     contentRs.append(content.substring(end));
                     para.insertNewRun(0).setText(contentRs.toString());
-
                     // 设置para的run的格式等内容
                     para.getRuns().get(0).setFontFamily(fontFamily);
                     para.getRuns().get(0).setFontSize(fontSize);
@@ -415,6 +424,7 @@ public class JodService {
             }
         }
     }
+
     private Matcher matcher(String str) {
         String regStr = "\\$\\{(.+?)\\}";
         Pattern pattern = Pattern.compile(regStr, Pattern.CASE_INSENSITIVE);
@@ -431,6 +441,7 @@ public class JodService {
             }
         }
     }
+
     public void close(OutputStream outputStream) {
         if (outputStream != null) {
             try {
