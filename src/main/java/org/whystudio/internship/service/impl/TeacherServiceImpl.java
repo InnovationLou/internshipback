@@ -151,6 +151,11 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Override
     @Transactional
     public JsonResult evalStudentAppraisal(String token, String stuno, String corpTeacherGrade, String teacherGrade, String leaderOpinion) {
+        // 数据校验
+        corpTeacherGrade = (corpTeacherGrade == null)? "": corpTeacherGrade;
+        teacherGrade = (teacherGrade == null)? "": teacherGrade;
+        leaderOpinion = (leaderOpinion == null)? "": leaderOpinion;
+
         String[] grades = {Const.NO_PASS, Const.PASS, Const.USUAL, Const.GOOD, Const.PERFECT};
         List<String> list = Arrays.asList(grades);
         if (!StringUtils.isBlank(corpTeacherGrade) && !list.contains(corpTeacherGrade)) {
@@ -275,6 +280,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             report.setStage2Grade(StringUtils.isBlank(stageGrade) ? report.getStage2Grade() : stageGrade);
         }
         String totalGrade = getSynthGrade(report.getStage1Grade(), report.getStage2Grade());
+        totalGrade = (totalGrade == null)?"": totalGrade;
         report.setTotalGrade(totalGrade);
         boolean update = reportService.lambdaUpdate().eq(Report::getStuno, stuno).update(report);
         if (update) {
